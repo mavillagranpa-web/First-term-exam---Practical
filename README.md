@@ -11,7 +11,7 @@ Proyecto simple para la materia donde se creó una API con FastAPI que permite c
 
 ## Preparar entorno y ejecutar
 
-1. Crear y activar entorno virtual:
+1. Crear y activar entorno virtual esto es opcional, se puede trabajar sin esto :):
 
 Windows (PowerShell):
 
