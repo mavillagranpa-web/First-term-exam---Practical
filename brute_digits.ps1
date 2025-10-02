@@ -54,7 +54,7 @@ $OutputEncoding = [System.Text.UTF8Encoding]::new()
 
 # -------------------------
 
-# - Envía al servidor { username, password } en JSON.
+# - Envía al servidor { username, password } en JSON
 
 # - Si el servidor responde OK (200), imprime que encontró la clave y muestra el mensaje de la API
 
@@ -89,7 +89,7 @@ function Try-Password($pw) {
                 Write-Host "Probando $pw -> error en la respuesta del servidor (no se pudo leer status)."
             }
         } else {
-            # No hubo respuesta (timeout, servidor caído, DNS, firewall, URL incorrecto, etc.)
+            # No hubo respuesta (timeout, servidor caído, DNS, firewall, URL incorrecto, entre otros)
             Write-Host "Probando $pw -> petición fallida (timeout o error de red). Mensaje: $($ex.Message)"
         }
         return $false
@@ -133,7 +133,7 @@ while ($true) {
 $pw = -join ($indices | ForEach-Object { $Chars[$_] })
 
 
-# Probar la contraseña construida.
+# Probar la contraseña construida
 if (Try-Password $pw) { exit 0 }  # si es correcta, salimos de todo
 
 # Incrementar el "contador" manualmente:
